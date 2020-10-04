@@ -1,0 +1,156 @@
+name: release
+on:
+  push:
+    tags:
+    - '[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+  create-release:
+    name: create-release
+    runs-on: ubuntu-18.04
+    steps:
+    - name: Create artifacts directory
+      run: mkdir artifacts
+
+    - name: Get the release version from the tag
+      if: env.ZOOTREE_VERSION == ''
+      run: |
+        echo "::set-env name=ZOOTREE_VERSION::${GITHUB_REF#refs/tags/}"
+        echo "version is: ${{ env.ZOOTREE_VERSION }}"
+
+    - name: Create GitHub release
+      id: release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ env.ZOOTREE_VERSION }}
+        release_name: ${{ env.ZOOTREE_VERSION }}
+
+    - name: Save release upload URL to artifact
+      run: echo "${{ steps.release.outputs.upload_url }}" > artifacts/release-upload-url
+
+    - name: Save version number to artifact
+      run: echo "${{ env.ZOOTREE_VERSION }}" > artifacts/release-version
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v1
+      with:
+        name: artifacts
+        path: artifacts
+
+  build-mac:
+    name: build-mac
+    needs: ['create-release']
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Install latest rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: x86_64-apple-darwin
+          default: true
+          override: true
+
+      - name: Get release upload URL
+        uses: actions/download-artifact@v1
+        with:
+          name: artifacts
+          path: artifacts
+
+      - name: Set release upload URL and release version
+        shell: bash
+        run: |
+          release_upload_url="$(cat artifacts/release-upload-url)"
+          echo "::set-env name=RELEASE_UPLOAD_URL::$release_upload_url"
+          echo "release upload url: $RELEASE_UPLOAD_URL"
+          release_version="$(cat artifacts/release-version)"
+          echo "::set-env name=RELEASE_VERSION::$release_version"
+          echo "release version: $RELEASE_VERSION"
+
+      - name: Build for mac
+        run: cargo build --verbose --release
+
+      - name: Build archive
+        shell: bash
+        run: |
+          staging="zootree-macos-${{ env.RELEASE_VERSION }}"
+          mkdir -p "$staging"
+          cp target/release/zootree "$staging"
+          tar czf "$staging.tar.gz" "$staging"
+          echo "::set-env name=ASSET::$staging.tar.gz"
+
+      - name: Upload release archive
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ env.RELEASE_UPLOAD_URL }}
+          asset_path: ${{ env.ASSET }}
+          asset_name: ${{ env.ASSET }}
+          asset_content_type: application/octet-stream
+
+
+  build-linux:
+    name: build-linux
+    needs: ['create-release']
+    runs-on: ubuntu-18.04
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Install packages
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends \
+          libx11-dev \
+          libxrandr-dev
+
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        profile: minimal
+        override: true
+
+    - name: Get release upload URL
+      uses: actions/download-artifact@v1
+      with:
+        name: artifacts
+        path: artifacts
+
+    - name: Set release upload URL and release version
+      shell: bash
+      run: |
+        release_upload_url="$(cat artifacts/release-upload-url)"
+        echo "::set-env name=RELEASE_UPLOAD_URL::$release_upload_url"
+        echo "release upload url: $RELEASE_UPLOAD_URL"
+        release_version="$(cat artifacts/release-version)"
+        echo "::set-env name=RELEASE_VERSION::$release_version"
+        echo "release version: $RELEASE_VERSION"
+
+    - name: Build release binary
+      run: cargo build --verbose --release
+
+    - name: Build archive
+      shell: bash
+      run: |
+        staging="zootree-linux-${{ env.RELEASE_VERSION }}"
+        mkdir -p "$staging"
+        cp target/release/zootree "$staging"
+        tar czf "$staging.tar.gz" "$staging"
+        echo "::set-env name=ASSET::$staging.tar.gz"
+
+    - name: Upload release archive
+      uses: actions/upload-release-asset@v1.0.1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ env.RELEASE_UPLOAD_URL }}
+        asset_path: ${{ env.ASSET }}
+        asset_name: ${{ env.ASSET }}
+        asset_content_type: application/octet-stream
+
