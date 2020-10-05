@@ -12,7 +12,7 @@ impl Watcher for LoggingWatcher {
 }
 
 fn main() {
-    let matches = App::new("zootree")
+    let matches = App::new("zktree")
         .version("0.0.1")
         .about("Display znodes tree of zookeeper")
         .arg(

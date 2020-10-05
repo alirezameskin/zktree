@@ -1,9 +1,9 @@
-# zootree
+# zktree
 A small tool to display Znodes in Zookeeper in tree structure.
 
 ## Usage
 ```bash
-$ zootree --server "localhost:2181"
+$ zktree --server "localhost:2181"
 ```
 
 ## Sample output

@@ -306,6 +306,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "zktree"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "zookeeper",
+]
+
+[[package]]
 name = "zookeeper"
 version = "0.5.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -329,12 +337,4 @@ checksum = "42307291e3c8b2e4082e5647572da863f0470511d0ecb1618a4cd0a361549723"
 dependencies = [
  "quote",
  "syn",
-]
-
-[[package]]
-name = "zootree"
-version = "0.1.0"
-dependencies = [
- "clap",
- "zookeeper",
 ]

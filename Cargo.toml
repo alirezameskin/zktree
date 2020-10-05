@@ -1,5 +1,5 @@
 [package]
-name = "zootree"
+name = "zktree"
 version = "0.1.0"
 authors = ["Alireza Meskin <alireza.meskin@gmail.com>"]
 edition = "2018"

@@ -13,10 +13,10 @@ jobs:
       run: mkdir artifacts
 
     - name: Get the release version from the tag
-      if: env.ZOOTREE_VERSION == ''
+      if: env.ZKTREE_VERSION == ''
       run: |
-        echo "::set-env name=ZOOTREE_VERSION::${GITHUB_REF#refs/tags/}"
-        echo "version is: ${{ env.ZOOTREE_VERSION }}"
+        echo "::set-env name=ZKTREE_VERSION::${GITHUB_REF#refs/tags/}"
+        echo "version is: ${{ env.ZKTREE_VERSION }}"
 
     - name: Create GitHub release
       id: release
@@ -24,14 +24,14 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ env.ZOOTREE_VERSION }}
-        release_name: ${{ env.ZOOTREE_VERSION }}
+        tag_name: ${{ env.ZKTREE_VERSION }}
+        release_name: ${{ env.ZKTREE_VERSION }}
 
     - name: Save release upload URL to artifact
       run: echo "${{ steps.release.outputs.upload_url }}" > artifacts/release-upload-url
 
     - name: Save version number to artifact
-      run: echo "${{ env.ZOOTREE_VERSION }}" > artifacts/release-version
+      run: echo "${{ env.ZKTREE_VERSION }}" > artifacts/release-version
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v1
@@ -77,9 +77,9 @@ jobs:
       - name: Build archive
         shell: bash
         run: |
-          staging="zootree-macos-${{ env.RELEASE_VERSION }}"
+          staging="zktree-macos-${{ env.RELEASE_VERSION }}"
           mkdir -p "$staging"
-          cp target/release/zootree "$staging"
+          cp target/release/zktree "$staging"
           tar czf "$staging.tar.gz" "$staging"
           echo "::set-env name=ASSET::$staging.tar.gz"
 
@@ -138,9 +138,9 @@ jobs:
     - name: Build archive
       shell: bash
       run: |
-        staging="zootree-linux-${{ env.RELEASE_VERSION }}"
+        staging="zktree-linux-${{ env.RELEASE_VERSION }}"
         mkdir -p "$staging"
-        cp target/release/zootree "$staging"
+        cp target/release/zktree "$staging"
         tar czf "$staging.tar.gz" "$staging"
         echo "::set-env name=ASSET::$staging.tar.gz"
 
