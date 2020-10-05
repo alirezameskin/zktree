@@ -1,33 +1,13 @@
-use std::fmt;
 use std::time::Duration;
 
 use clap::{App, Arg};
-use zookeeper::{Stat, WatchedEvent, Watcher, ZkError, ZooKeeper};
+use zookeeper::{Stat, WatchedEvent, Watcher, ZooKeeper};
 
 struct LoggingWatcher;
-
-struct ZNode(String, Result<Stat, ZkError>);
 
 impl Watcher for LoggingWatcher {
     fn handle(&self, _: WatchedEvent) {
         unimplemented!()
-    }
-}
-
-impl fmt::Display for ZNode {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let parts = self.0.split("/").collect::<Vec<&str>>();
-        let len = parts.len();
-        let space = std::iter::repeat("    |").take(len - 2).collect::<String>();
-        let data_size = self.1.as_ref().ok().map(|s| s.data_length).unwrap_or(0);
-
-        write!(
-            f,
-            "|{}----/{} ({} bytes)",
-            space,
-            parts.last().unwrap_or(&""),
-            data_size
-        )
     }
 }
 
@@ -71,23 +51,32 @@ fn main() {
 fn walk(client: &ZooKeeper, path: &str, level: u64) {
     let result = client.get_children(path, false);
 
-    match result {
-        Err(_) => {}
-        Ok(children) => {
-            for name in children {
-                let next_path: String = if level == 0 {
-                    path.to_owned() + &*name
-                } else {
-                    path.to_owned() + "/" + &*name
-                };
+    if let Ok(children) = result {
+        for name in children {
+            let path = if level == 0 {
+                format!("{}{}", path, name)
+            } else {
+                format!("{}/{}", path, name)
+            };
 
-                let stat = client.get_data(&*next_path, false).map(|i| i.1);
+            let stat = client.get_acl(&path).map(|i| i.1).ok();
 
-                let znode = ZNode(next_path.clone(), stat);
-                println!("{}", znode);
-
-                walk(client, &*next_path, level + 1);
-            }
+            display(&path, &stat);
+            walk(client, &path, level + 1);
         }
     }
+}
+
+fn display(path: &String, stat: &Option<Stat>) {
+    let parts = path.split("/").collect::<Vec<&str>>();
+    let len = parts.len();
+    let space = std::iter::repeat("    |").take(len - 2).collect::<String>();
+    let data_size = stat.as_ref().map(|s| s.data_length).unwrap_or(0);
+
+    println!(
+        "|{}----/{} ({} bytes)",
+        space,
+        parts.last().unwrap_or(&""),
+        data_size
+    )
 }
